@@ -8,11 +8,15 @@ def calculator_view(request):
     num2 = request.params.get('num2')
     
     if num1 is None or num2 is None:
-        return Response("<form method='GET'>
-                            Number 1: <input type='text' name='num1'><br>
-                            Number 2: <input type='text' name='num2'><br>
-                            <input type='submit' value='Calculate'>
-                        </form>")
+        return Response(
+            """
+            <form method='GET'>
+                Number 1: <input type='text' name='num1'><br>
+                Number 2: <input type='text' name='num2'><br>
+                <input type='submit' value='Calculate'>
+            </form>
+            """
+        )
     
     try:
         num1, num2 = int(num1), int(num2)
@@ -24,21 +28,28 @@ def calculator_view(request):
         exponentiation = num1 ** num2
         floor_division = num1 // num2 if num2 != 0 else "undefined"
         
-        result = (f"<p>Number 1: {num1}</p>"
-                  f"<p>Number 2: {num2}</p>"
-                  f"<p>Addition: {addition}</p>"
-                  f"<p>Subtraction: {subtraction}</p>"
-                  f"<p>Multiplication: {multiplication}</p>"
-                  f"<p>Division: {division}</p>"
-                  f"<p>Modulus: {modulus}</p>"
-                  f"<p>Exponentiation: {exponentiation}</p>"
-                  f"<p>Floor Division: {floor_division}</p>")
+        result = f"""
+            <p>Number 1: {num1}</p>
+            <p>Number 2: {num2}</p>
+            <p>Addition: {addition}</p>
+            <p>Subtraction: {subtraction}</p>
+            <p>Multiplication: {multiplication}</p>
+            <p>Division: {division}</p>
+            <p>Modulus: {modulus}</p>
+            <p>Exponentiation: {exponentiation}</p>
+            <p>Floor Division: {floor_division}</p>
+        """
         
-        return Response(f"<form method='GET'>
-                            Number 1: <input type='text' name='num1' value='{num1}'><br>
-                            Number 2: <input type='text' name='num2' value='{num2}'><br>
-                            <input type='submit' value='Calculate'>
-                        </form>" + result)
+        return Response(
+            f"""
+            <form method='GET'>
+                Number 1: <input type='text' name='num1' value='{num1}'><br>
+                Number 2: <input type='text' name='num2' value='{num2}'><br>
+                <input type='submit' value='Calculate'>
+            </form>
+            {result}
+            """
+        )
     except ValueError:
         return Response("Invalid input. Please enter numeric values.")
 
