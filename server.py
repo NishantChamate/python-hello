@@ -2,9 +2,9 @@ import os
 import json
 import firebase_admin
 from firebase_admin import credentials, firestore
-from wsgiref.simple_server import make_server
 from pyramid.config import Configurator
 from pyramid.response import Response
+from waitress import serve  # Better for production WSGI
 
 # Load Firebase credentials from environment variable
 firebase_credentials = os.getenv("FIREBASE_CREDENTIALS")
@@ -22,6 +22,10 @@ if firebase_credentials:
 else:
     print("❌ Firebase credentials not found in environment variables")
     raise ValueError("Firebase credentials not found in environment variables")
+
+# Health check endpoint
+def health_check(request):
+    return Response("OK", content_type="text/plain", status=200)
 
 def home_page(request):
     return Response("App is running", content_type="text/plain", status=200)
@@ -55,11 +59,16 @@ def calculate_and_store(request):
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))  # Default to 8080
     with Configurator() as config:
+        config.add_route('health', '/health')  # Explicit health check
+        config.add_view(health_check, route_name='health')
+
         config.add_route('home', '/')
         config.add_view(home_page, route_name='home')
+
         config.add_route('calculate', '/calculate')
-        config.add_view(calculate_and_store, route_name='calculate')
+        config.add_view(calculate_and_store, route_name='calculate', renderer="json")
+
         app = config.make_wsgi_app()
-    server = make_server('0.0.0.0', port, app)
+    
     print(f"🚀 Server running on port {port}")
-    server.serve_forever()
+    serve(app, host="0.0.0.0", port=port)  # Use Waitress for production stability
