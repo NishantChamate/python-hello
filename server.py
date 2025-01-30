@@ -12,7 +12,7 @@ firebase_admin.initialize_app(cred, {
 })
 
 def hello_world(request):
-    name = os.environ.get('NAME')
+    name = os.environ.get('NAME','Nishant')
     if not name:
         name = "world"
     
