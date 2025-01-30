@@ -2,120 +2,125 @@ from wsgiref.simple_server import make_server
 from pyramid.config import Configurator
 from pyramid.response import Response
 import os
-import random
 
 def hello_world(request):
-    name = os.environ.get('NAME', 'Nishant')
-    if not name:
-        name = "world"
-    
-    # Generate two random numbers
-    num1 = random.randint(1, 100)
-    num2 = random.randint(1, 100)
-    
-    # Perform calculations
-    addition = num1 + num2
-    subtraction = num1 - num2
-    multiplication = num1 * num2
-    division = num1 / num2 if num2 != 0 else "undefined"
-    modulus = num1 % num2 if num2 != 0 else "undefined"
-    exponentiation = num1 ** num2
-    floor_division = num1 // num2 if num2 != 0 else "undefined"
-
-    # HTML with animation and CSS
-    html = f"""
-    <html>
-        <head>
-            <style>
-                body {{
-                    font-family: Arial, sans-serif;
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                    height: 100vh;
-                    background-color: #f0f8ff;
-                    margin: 0;
-                    transition: all 0.5s ease;
-                }}
-                .container {{
-                    text-align: center;
-                    border-radius: 10px;
-                    padding: 30px;
-                    background-color: #fff;
-                    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-                    width: 400px;
-                    transform: scale(0);
-                    animation: zoomIn 0.5s forwards;
-                }}
-                @keyframes zoomIn {{
-                    0% {{ transform: scale(0); }}
-                    100% {{ transform: scale(1); }}
-                }}
-                input[type="number"] {{
-                    padding: 10px;
-                    margin: 10px;
-                    font-size: 14px;
-                    border: 1px solid #ddd;
-                    border-radius: 5px;
-                    width: 40%;
-                }}
-                button {{
-                    padding: 10px 20px;
-                    font-size: 16px;
-                    background-color: #4CAF50;
-                    color: white;
-                    border: none;
-                    border-radius: 5px;
-                    cursor: pointer;
-                    transition: 0.3s ease;
-                }}
-                button:hover {{
-                    background-color: #45a049;
-                }}
-                .results {{
-                    margin-top: 20px;
-                    text-align: left;
-                    display: none;
-                    animation: fadeIn 0.5s forwards;
-                }}
-                @keyframes fadeIn {{
-                    0% {{ opacity: 0; }}
-                    100% {{ opacity: 1; }}
-                }}
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <h2>Simple Calculator</h2>
-                <form method="GET">
-                    <input type="number" name="num1" placeholder="Enter number 1" required><br>
-                    <input type="number" name="num2" placeholder="Enter number 2" required><br>
-                    <button type="submit">Calculate</button>
-                </form>
-                <div class="results" id="results">
-                    <h3>Results:</h3>
-                    <p>Random Numbers: {num1}, {num2}</p>
-                    <p>Addition: {addition}</p>
-                    <p>Subtraction: {subtraction}</p>
-                    <p>Multiplication: {multiplication}</p>
-                    <p>Division: {division}</p>
-                    <p>Modulus: {modulus}</p>
-                    <p>Exponentiation: {exponentiation}</p>
-                    <p>Floor Division: {floor_division}</p>
-                </div>
+    html = """
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Calculator</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                background-color: #f7f7f7;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 100vh;
+                margin: 0;
+            }
+            .calculator {
+                background-color: #333;
+                border-radius: 15px;
+                padding: 20px;
+                box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.1);
+            }
+            .calculator input {
+                width: 100%;
+                height: 50px;
+                text-align: right;
+                font-size: 24px;
+                margin-bottom: 15px;
+                padding: 10px;
+                border: none;
+                border-radius: 10px;
+                background-color: #222;
+                color: #fff;
+            }
+            .buttons {
+                display: grid;
+                grid-template-columns: repeat(4, 1fr);
+                gap: 10px;
+            }
+            .buttons button {
+                padding: 20px;
+                font-size: 24px;
+                background-color: #444;
+                color: white;
+                border: none;
+                border-radius: 10px;
+                cursor: pointer;
+                transition: background-color 0.3s ease, transform 0.2s ease;
+            }
+            .buttons button:hover {
+                background-color: #666;
+                transform: scale(1.1);
+            }
+            .buttons button:active {
+                transform: scale(0.95);
+            }
+            .buttons button.operator {
+                background-color: #f39c12;
+            }
+            .buttons button.clear {
+                background-color: #e74c3c;
+            }
+            .buttons button.equals {
+                background-color: #2ecc71;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="calculator">
+            <input id="display" type="text" disabled />
+            <div class="buttons">
+                <button onclick="appendToDisplay('7')">7</button>
+                <button onclick="appendToDisplay('8')">8</button>
+                <button onclick="appendToDisplay('9')">9</button>
+                <button onclick="appendToDisplay('+')" class="operator">+</button>
+                
+                <button onclick="appendToDisplay('4')">4</button>
+                <button onclick="appendToDisplay('5')">5</button>
+                <button onclick="appendToDisplay('6')">6</button>
+                <button onclick="appendToDisplay('-')" class="operator">-</button>
+                
+                <button onclick="appendToDisplay('1')">1</button>
+                <button onclick="appendToDisplay('2')">2</button>
+                <button onclick="appendToDisplay('3')">3</button>
+                <button onclick="appendToDisplay('*')" class="operator">*</button>
+                
+                <button onclick="appendToDisplay('0')">0</button>
+                <button onclick="clearDisplay()" class="clear">C</button>
+                <button onclick="calculateResult()" class="equals">=</button>
+                <button onclick="appendToDisplay('/')" class="operator">/</button>
             </div>
-            <script>
-                document.querySelector("form").onsubmit = function() {{
-                    document.getElementById("results").style.display = "block";
-                }}
-            </script>
-        </body>
+        </div>
+        <script>
+            function appendToDisplay(value) {
+                document.getElementById('display').value += value;
+            }
+
+            function clearDisplay() {
+                document.getElementById('display').value = '';
+            }
+
+            function calculateResult() {
+                try {
+                    let result = eval(document.getElementById('display').value);
+                    document.getElementById('display').value = result;
+                } catch (e) {
+                    document.getElementById('display').value = 'Error';
+                }
+            }
+        </script>
+    </body>
     </html>
     """
     return Response(html)
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT"))
+    port = int(os.environ.get("PORT", 8080))  
     with Configurator() as config:
         config.add_route('hello', '/')
         config.add_view(hello_world, route_name='hello')
