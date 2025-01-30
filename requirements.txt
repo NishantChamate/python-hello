@@ -1,6 +1,5 @@
 pyramid==2.0
 firebase-admin
-flask
-waitress
+waitress  
 requests
-urllib3==1.26.16  # Compatible version to avoid OpenSSL issue
+urllib3==1.26.16  
