@@ -139,3 +139,16 @@ if __name__ == '__main__':
     server = make_server('0.0.0.0', port, app)
     print(f"🚀 Server running on port {port}")
     server.serve_forever()
+
+import traceback
+@app.route('/calculate', methods=['POST'])
+def calculate():
+    try:
+        data = request.get_json()
+        expression = data.get('expression')
+        result = eval(expression)
+        return jsonify({"result": result})
+    except Exception as e:
+        print(traceback.format_exc())  # Debugging log
+        return jsonify({"error": str(e)}), 500
+
