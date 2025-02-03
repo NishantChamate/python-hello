@@ -15,26 +15,34 @@ if firebase_key and not firebase_admin._apps:
     try:
         firebase_key_dict = json.loads(firebase_key)
         cred = credentials.Certificate(firebase_key_dict)
-        firebase_admin.initialize_app(cred, {
-            'databaseURL': firebase_db_url
-        })
+        firebase_admin.initialize_app(cred, {'databaseURL': firebase_db_url})
         print("✅ Firebase Initialized Successfully")
     except Exception as e:
         print(f"❌ Firebase Initialization Failed: {e}")
 
+# Function to save calculation to Firebase
 def save_to_firebase(first_value, second_value, operation, result):
     try:
         ref = db.reference("calculations")
-        ref.push({
-            "first_value": first_value,
-            "second_value": second_value,
-            "operation": operation,
+
+        # Get count of previous calculations to generate unique IDs
+        calculations = ref.get()
+        next_id = len(calculations) + 1 if calculations else 1
+
+        # Store calculation in a subfolder
+        calc_ref = ref.child(f"calculation_{next_id}")
+        calc_ref.set({
+            "input1": first_value,
+            "input2": second_value,
+            "operand": operation,
             "result": result
         })
-        print("✅ Data saved to Firebase:", first_value, operation, second_value, "=", result)
+        print(f"✅ Data saved to Firebase under calculation_{next_id}")
+
     except Exception as e:
         print(f"❌ Error saving data to Firebase: {e}")
 
+# Web page view
 def hello_world(request):
     html = """
     <html lang="en">
@@ -100,6 +108,7 @@ def hello_world(request):
     """
     return Response(html)
 
+# Calculation API
 def calculate(request):
     try:
         data = request.json_body
@@ -120,7 +129,7 @@ def calculate(request):
         return Response(json.dumps({"error": str(e)}), content_type='application/json', status=400)
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 8080))  
+    port = int(os.environ.get("PORT", 8080))
     with Configurator() as config:
         config.add_route('hello', '/')
         config.add_view(hello_world, route_name='hello')
