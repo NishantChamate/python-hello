@@ -1,36 +1,18 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from wsgiref.simple_server import make_server
-from pyramid.config import Configurator
-from pyramid.response import Response
-from werkzeug.middleware.dispatcher import DispatcherMiddleware
-from starlette.middleware.wsgi import WSGIMiddleware
-import os
-import json
 import firebase_admin
 from firebase_admin import credentials, db
-import re
-import traceback
+import os
+import json
 
-# FastAPI Application
-fastapi_app = FastAPI()
+# Initialize FastAPI app
+app = FastAPI()
 
-class ExpressionRequest(BaseModel):
-    expression: str
-
-@fastapi_app.post("/calculate")
-def calculate(request: ExpressionRequest):
-    try:
-        result = eval(request.expression)  # ⚠️ Avoid eval in production
-        return {"result": result}
-    except Exception as e:
-        print(traceback.format_exc())  # Debugging
-        raise HTTPException(status_code=500, detail=str(e))
-
-# Pyramid Application
+# Load Firebase credentials from environment variables
 firebase_key = os.getenv("FIREBASE_PRIVATE_KEY")
 firebase_db_url = os.getenv("FIREBASE_DATABASE_URL")
 
+# Initialize Firebase
 if firebase_key and not firebase_admin._apps:
     try:
         firebase_key_dict = json.loads(firebase_key)
@@ -40,42 +22,57 @@ if firebase_key and not firebase_admin._apps:
     except Exception as e:
         print(f"❌ Firebase Initialization Failed: {e}")
 
-def save_to_firebase(expression, result):
+# Define request model
+class CalculationRequest(BaseModel):
+    input1: float
+    input2: float
+    operation: str
+
+# Function to perform calculation
+def perform_calculation(input1, input2, operation):
+    if operation == "+":
+        return input1 + input2
+    elif operation == "-":
+        return input1 - input2
+    elif operation == "*":
+        return input1 * input2
+    elif operation == "/":
+        if input2 == 0:
+            raise ValueError("Division by zero is not allowed")
+        return input1 / input2
+    else:
+        raise ValueError("Invalid operation. Supported: +, -, *, /")
+
+# Function to store result in Firebase
+def save_to_firebase(input1, input2, operation, result):
     try:
         ref = db.reference("calculations")
+
+        # Get count of previous calculations to generate unique IDs
         calculations = ref.get()
         next_id = len(calculations) + 1 if calculations else 1
-        calc_ref = ref.child(f"calculation_{next_id}")
-        calc_ref.set({"expression": expression, "result": result})
-        print(f"✅ Data saved to Firebase under calculation_{next_id}")
+
+        # Store calculation
+        ref.child(f"calculation_{next_id}").set({
+            "input1": input1,
+            "input2": input2,
+            "operation": operation,
+            "result": result
+        })
+
+        print(f"✅ Calculation saved to Firebase: calculation_{next_id}")
+
     except Exception as e:
-        print(f"❌ Error saving data to Firebase: {e}")
+        print(f"❌ Error saving to Firebase: {e}")
 
-def hello_world(request):
-    return Response("<h1>Welcome to the Calculator App</h1>")
-
-def pyramid_calculate(request):
+# API Endpoint for calculations
+@app.post("/calculate")
+def calculate(request: CalculationRequest):
     try:
-        data = request.json_body
-        expression = data.get("expression")
-        result = eval(expression)
-        save_to_firebase(expression, result)
-        return Response(json.dumps({"result": result}), content_type='application/json')
+        result = perform_calculation(request.input1, request.input2, request.operation)
+        save_to_firebase(request.input1, request.input2, request.operation, result)
+        return {"input1": request.input1, "input2": request.input2, "operation": request.operation, "result": result}
     except Exception as e:
-        return Response(json.dumps({"error": str(e)}), content_type='application/json', status=400)
+        raise HTTPException(status_code=400, detail=str(e))
 
-with Configurator() as config:
-    config.add_route('home', '/')
-    config.add_view(hello_world, route_name='home')
-    config.add_route('calculate', '/calculate', request_method='POST')
-    config.add_view(pyramid_calculate, route_name='calculate', renderer='json')
-    pyramid_app = config.make_wsgi_app()
-
-# Combine FastAPI and Pyramid using DispatcherMiddleware
-application = DispatcherMiddleware(WSGIMiddleware(pyramid_app), {'/api': fastapi_app})
-
-if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 8080))
-    server = make_server('0.0.0.0', port, application)
-    print(f"🚀 Server running on port {port}")
-    server.serve_forever()
+# Run with: uvicorn filename:app --host 0.0.0.0 --port 8080
