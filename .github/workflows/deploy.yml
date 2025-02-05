@@ -1,0 +1,45 @@
+name: Deploy to AWS App Runner
+
+on:
+  push:
+    branches:
+      - main  # Trigger workflow on push to main branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest  # Use Ubuntu as the environment
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2  # Checkout the repository code
+
+    - name: Set up Python
+      uses: actions/setup-python@v2  # Set up Python environment
+      with:
+        python-version: '3.8'  # Specify the Python version you are using
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt  # Install Python dependencies from requirements.txt
+
+    - name: Set up Firebase credentials
+      run: |
+        echo "FIREBASE_DATABASE_URL=${{ secrets.FIREBASE_DATABASE_URL }}" >> $GITHUB_ENV
+        echo "FIREBASE_PRIVATE_KEY=${{ secrets.FIREBASE_PRIVATE_KEY }}" >> $GITHUB_ENV  # Set Firebase secrets as environment variables
+
+    - name: Deploy to AWS App Runner
+      run: |
+        aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws configure set region ${{ secrets.AWS_REGION }}  # Set AWS credentials for CLI
+
+        # Build Docker image for the app (assuming you have a Dockerfile in the repository)
+        docker build -t my-app .  # Build the Docker image
+
+        # Deploy to AWS App Runner
+        aws apprunner create-service \
+          --service-name my-service \
+          --source-configuration ImageRepository={ImageIdentifier=my-app:latest,ImageConfiguration={Port=8080}}
+
+        echo "Deployment successful!"  # Log success message
