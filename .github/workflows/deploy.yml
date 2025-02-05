@@ -3,7 +3,7 @@ name: Deploy to AWS App Runner
 on:
   push:
     branches:
-      - main  # Trigger workflow on push to main branch
+      - main  # Trigger the workflow on push to the main branch
 
 jobs:
   deploy:
@@ -28,18 +28,33 @@ jobs:
         echo "FIREBASE_DATABASE_URL=${{ secrets.FIREBASE_DATABASE_URL }}" >> $GITHUB_ENV
         echo "FIREBASE_PRIVATE_KEY=${{ secrets.FIREBASE_PRIVATE_KEY }}" >> $GITHUB_ENV  # Set Firebase secrets as environment variables
 
-    - name: Deploy to AWS App Runner
+    - name: Set up AWS CLI
+      run: |
+        curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+        unzip awscliv2.zip
+        sudo ./aws/install
+
+    - name: Configure AWS CLI
       run: |
         aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws configure set region ${{ secrets.AWS_REGION }}  # Set AWS credentials for CLI
 
-        # Build Docker image for the app (assuming you have a Dockerfile in the repository)
+    - name: Build Docker image
+      run: |
         docker build -t my-app .  # Build the Docker image
 
-        # Deploy to AWS App Runner
+    - name: Push Docker image to Amazon ECR
+      run: |
+        aws ecr create-repository --repository-name my-app || echo "Repository exists"
+        aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+        docker tag my-app:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/my-app:latest
+        docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/my-app:latest
+
+    - name: Deploy to AWS App Runner
+      run: |
         aws apprunner create-service \
-          --service-name my-service \
-          --source-configuration ImageRepository={ImageIdentifier=my-app:latest,ImageConfiguration={Port=8080}}
+          --service-name my-app-service \
+          --source-configuration ImageRepository={ImageIdentifier=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/my-app:latest,ImageConfiguration={Port=8080}}
 
         echo "Deployment successful!"  # Log success message
