@@ -53,7 +53,7 @@ def hello_world(request):
             .buttons button:active { transform: scale(0.95); }
             .buttons button.operator { background-color: #f39c12; }
             .buttons button.clear { background-color: #e74c3c; }
-            .buttons button.equals { background-color: #2ecc71; }
+            .buttons button.equals { background-color: #2ecc81; }
         </style>
     </head>
     <body>
