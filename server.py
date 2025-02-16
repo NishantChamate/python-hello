@@ -7,21 +7,21 @@ import firebase_admin
 from firebase_admin import credentials, db
 import re
 
-# Load Firebase credentials from GitHub Actions secret
+# Load Firebase credentials from GitHub Secrets
 firebase_key = os.getenv("FIREBASE_PRIVATE_KEY")
 firebase_db_url = os.getenv("FIREBASE_DATABASE_URL")
 
+# Ensure the Firebase key is correctly formatted and initialize Firebase
 if firebase_key and not firebase_admin._apps:
     try:
-        firebase_key_dict = json.loads(firebase_key)
+        firebase_key_dict = json.loads(firebase_key.replace("\\n", "\n"))  # Convert GitHub secret to JSON format
         cred = credentials.Certificate(firebase_key_dict)
-        firebase_admin.initialize_app(cred, {
-            'databaseURL': firebase_db_url
-        })
+        firebase_admin.initialize_app(cred, {'databaseURL': firebase_db_url})
         print("✅ Firebase Initialized Successfully")
     except Exception as e:
         print(f"❌ Firebase Initialization Failed: {e}")
 
+# Function to save calculations to Firebase
 def save_to_firebase(first_value, second_value, operation, result):
     try:
         ref = db.reference("calculations")
@@ -35,6 +35,7 @@ def save_to_firebase(first_value, second_value, operation, result):
     except Exception as e:
         print(f"❌ Error saving data to Firebase: {e}")
 
+# Route: Home Page (Simple Calculator)
 def hello_world(request):
     html = """
     <html lang="en">
@@ -100,6 +101,7 @@ def hello_world(request):
     """
     return Response(html)
 
+# Route: Calculation API
 def calculate(request):
     try:
         data = request.json_body
@@ -119,6 +121,7 @@ def calculate(request):
     except Exception as e:
         return Response(json.dumps({"error": str(e)}), content_type='application/json', status=400)
 
+# Start the WSGI server
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))  
     with Configurator() as config:
